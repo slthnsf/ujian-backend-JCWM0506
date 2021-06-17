@@ -1,16 +1,32 @@
 const express = require('express')
-const cors = require('cors')
-
-// main app
 const app = express()
+const PORT = 2000
+const cors = require('cors')
+const bearerToken = require('express-bearer-token')
 
-// apply middleware
+app.use(bearerToken())
 app.use(cors())
+app.use(express.json())
 
-// main route
-const response = (req, res) => res.status(200).send('<h1>REST API JCWM0506</h1>')
-app.get('/', response)
+const { db } = require('./config/database')
 
-// bind to local machine
-const PORT = process.env.PORT || 2000
-app.listen(PORT, () => `CONNECTED : port ${PORT}`)
+db.getConnection((err, connection) => {
+    if (err) {
+        return console.error('Error MySQL', err.message)
+    }
+    console.log(`Connected to MySQL Server: ${connection.threadId}`)
+})
+
+const { userRouter } = require('./router')
+const { movieRouter } = require('./router')
+app.use('/user', userRouter)
+app.use('/movies', movieRouter)
+
+// ERROR HANDLING
+app.use((error, req, res, next) => {
+    console.log("Handling Error", error)
+    res.status(500).send({ status: 'Error Mysql', message: error })
+})
+
+
+app.listen(PORT, () => console.log("Server Running:", PORT))
